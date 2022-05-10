@@ -17,10 +17,18 @@ namespace ModelChanger
             ClassInjector.DerivedConstructorBody(this);
         }
 
+        #region Properties
+
         private GameObject _avatarRoot;
         private GameObject _activeAvatar;
         private GameObject _activeAvatarBody;
         private GameObject _activeAvatarModelParent;
+        private GameObject _weaponRoot;
+        private GameObject _weaponRootParent;
+        private GameObject _weaponL;
+        private GameObject _weaponLParent;
+        private GameObject _weaponR;
+        private GameObject _weaponRParent;
         private List<GameObject> _bodyParts = new List<GameObject>();
         private string _filePath;
         private string _avatarTexName = "texture.png";
@@ -29,7 +37,8 @@ namespace ModelChanger
         private bool _showPanel;
 
         private Rect _windowRect = new Rect((Screen.height - 100) / 2, (Screen.height - 100) / 2, 150, 100);
-
+        #endregion
+        
         public void OnGUI()
         {
             if (!_showPanel) return;
@@ -51,11 +60,11 @@ namespace ModelChanger
 
             GUILayout.BeginHorizontal(new GUILayoutOption[0]);
             if (GUILayout.Button("Cut", new GUILayoutOption[0]))
-                CopyAvatarBody();
+                CutAvatarBody();
             if (GUILayout.Button("Paste", new GUILayoutOption[0]))
                 PasteAvatarBody();
             GUILayout.EndHorizontal();
-
+            
             GUI.DragWindow();
         }
 
@@ -82,7 +91,9 @@ namespace ModelChanger
             }
         }
 
-        private void CopyAvatarBody()
+        #region MainFunctions
+
+        private void CutAvatarBody()
         {
             _bodyParts.Clear();
             foreach (var o in _activeAvatarModelParent.transform)
@@ -91,28 +102,51 @@ namespace ModelChanger
                 _bodyParts.Add(bodypart.gameObject);
                 Loader.Msg($"Added {bodypart.name} of {_activeAvatarModelParent.transform.name} to the list.");
             }
+
+            foreach (var o in _activeAvatarModelParent.GetComponentsInChildren<Transform>())
+            {
+                switch (o.name)
+                {
+                    case "Bip001 Spine1":
+                        _weaponRootParent = o.gameObject;
+                        Loader.Msg($"Found {_weaponRootParent.name}.");
+                        break;
+                    case "Bip001 L Hand":
+                        _weaponLParent = o.gameObject;
+                        Loader.Msg($"Found {_weaponLParent.name}");
+                        break;
+                    case "Bip001 R Hand":
+                        _weaponRParent = o.gameObject;
+                        Loader.Msg($"Found {_weaponRParent.name}");
+                        break;
+                }
+            }
         }
 
         private void PasteAvatarBody()
         {
-            MigrateObjects();
-            
+            HideObjects();
             foreach (var bodypart in _bodyParts)
             {
                 bodypart.transform.parent = _activeAvatarModelParent.transform;
+                bodypart.transform.parentInternal = _activeAvatarModelParent.transform;
+                bodypart.transform.SetSiblingIndex(0);
+                Loader.Msg($"{bodypart.name} moved to {_activeAvatarModelParent.name}");
             }
+            _weaponRoot.transform.parent = _weaponRootParent.transform;
+            _weaponL.transform.parent = _weaponLParent.transform;
+            _weaponR.transform.parent = _weaponRParent.transform;
         }
 
-        private void MigrateObjects()
+        private void HideObjects()
         {
-            var newObj = new GameObject();
             foreach (var a in _activeAvatarModelParent.transform)
             {
                 var bodypart = a.Cast<Transform>();
-                bodypart.parent = newObj.transform;
+                bodypart.gameObject.SetActive(false);
             }
         }
-        
+
         private void ApplyAvatarTexture()
         {
             if (_activeAvatarBody == null) return;
@@ -124,6 +158,10 @@ namespace ModelChanger
 
             _activeAvatarBody.GetComponent<SkinnedMeshRenderer>().materials[1].mainTexture = _tex;
         }
+
+        #endregion
+
+        #region HelperFunctions
 
         private void FindActiveAvatar()
         {
@@ -150,6 +188,20 @@ namespace ModelChanger
                         _activeAvatarModelParent = a.GetChild(0).gameObject;
                         Loader.Msg($"{_activeAvatarModelParent.transform.name}");
                         break;
+                    case "WeaponL":
+                        _weaponL = a.gameObject;
+                        Loader.Msg($"Found {_weaponL.name}");
+                        break;
+                    case "WeaponR":
+                        _weaponR = a.gameObject;
+                        Loader.Msg($"Found {_weaponR.name}");
+                        break;
+                }
+
+                if (a.name.Contains("WeaponRoot"))
+                {
+                    _weaponRoot = a.gameObject;
+                    Loader.Msg($"Found {_weaponRoot.name}");
                 }
             }
         }
@@ -162,6 +214,16 @@ namespace ModelChanger
                 Cursor.lockState = value ? CursorLockMode.Locked : CursorLockMode.None;
                 Cursor.visible = value == false;
             }
+        }
+
+        #endregion
+    }
+
+    public static class StringExtensions
+    {
+        public static bool Contains(this string source, string toCheck, StringComparison comp)
+        {
+            return source?.IndexOf(toCheck, comp) >= 0;
         }
     }
 }
