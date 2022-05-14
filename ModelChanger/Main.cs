@@ -33,12 +33,13 @@ namespace ModelChanger
         private GameObject _weaponR;
         private GameObject _weaponRParent;
         private GameObject _npcAvatarModelParent;
-        private GameObject _npcWeaponL;
-        private GameObject _npcWeaponR;
+        private GameObject _npcWeaponLRoot;
+        private GameObject _npcWeaponRRoot;
         private GameObject _npcWeaponRoot;
         private List<GameObject> _bodyParts = new List<GameObject>();
         private List<GameObject> _npcBodyParts = new List<GameObject>();
         private List<GameObject> _searchResults = new List<GameObject>();
+        private List<GameObject> _npcContainer = new List<GameObject>();
         private string _filePath;
         private string _avatarTexName = "texture.png";
         private string _avatarSearch;
@@ -82,7 +83,11 @@ namespace ModelChanger
             if (GUILayout.Button("Search", new GUILayoutOption[0]))
                 SearchObjects();
             if (GUILayout.Button("Clear", new GUILayoutOption[0]))
+            {
                 _searchResults.Clear();
+                _avatarSearch = "";
+            }
+
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
@@ -103,6 +108,7 @@ namespace ModelChanger
         {
             if (Input.GetKeyDown(KeyCode.F12))
                 _showPanel = !_showPanel;
+
             if (_showPanel)
                 Focused = false;
 
@@ -126,6 +132,14 @@ namespace ModelChanger
             }
 
             _searchResults = _searchResults.Where(item => item != null).ToList();
+            _npcContainer = _npcContainer.Where(item => item != null).ToList();
+
+            if (_npcContainer == null) return;
+            foreach (var entity in _npcContainer)
+            {
+                if (entity == null) continue;
+                entity.transform.position = _activeAvatar.transform.position + new Vector3(5, 0, 0);
+            }
         }
 
         #region MainFunctions
@@ -214,44 +228,85 @@ namespace ModelChanger
                 if (a.name.Contains("Body"))
                 {
                     _npcAvatarModelParent = a.gameObject.transform.parent.gameObject;
+                    Loader.Msg($"{_npcAvatarModelParent.transform.name}");
                 }
             }
 
-            _npcBodyParts.Clear(); //清空_npcBodyParts数组
-            foreach (var o in _npcAvatarModelParent.transform) //遍历NPC的父对象的transform组件并存于o
+            _npcBodyParts.Clear();
+            foreach (var o in _npcAvatarModelParent.transform)
             {
-                var npcBodypart = o.Cast<Transform>(); //将o铸型并存与bodypart
-                _npcBodyParts.Add(npcBodypart.gameObject); //将找到的gameObject保存在_bodyParts数组里
-                Loader.Msg($"Added {npcBodypart.name} of {_npcAvatarModelParent.transform.name} to the list."); //打印
+                var npcBodypart = o.Cast<Transform>();
+                _npcBodyParts.Add(npcBodypart.gameObject);
+                Loader.Msg($"Added {npcBodypart.name} of {_npcAvatarModelParent.transform.name} to the list.");
             }
 
-            foreach (var o in _npcAvatarModelParent.GetComponentsInChildren<Transform>()) //遍历活动角色的父项的子集并存于o
+            var activeAvatarAnimator = _activeAvatarModelParent.GetComponent<Animator>();
+            Loader.Msg($"Animator_Load in {_activeAvatarModelParent}.");
+            var npcAnimator = _npcAvatarModelParent.GetComponent<Animator>();
+            Loader.Msg($"Animator_Load in {_npcAvatarModelParent}.");
+
             {
-                switch (o.name) //判断 o名称 查找武器
+                foreach (var a in _activeAvatarModelParent.transform)
                 {
-                    case "Bip001 Spine1": //case Bip001 Spine1
-                        _npcWeaponRoot = o.gameObject; //武器路劲o.gameObject
-                        Loader.Msg($"Found {_npcWeaponRoot.name}."); //找到Bip001 Spine1
+                    var bodypart = a.Cast<Transform>();
+                    switch (bodypart.name)
+                    {
+                        case "Brow":
+                            Destroy(bodypart.gameObject);
+                            Loader.Msg($"删除{bodypart.name}");
+                            break;
+                        case "Face":
+                            Destroy(bodypart.gameObject);
+                            Loader.Msg($"删除{bodypart.name}");
+                            break;
+                        case "Face_Eye":
+                            Destroy(bodypart.gameObject);
+                            Loader.Msg($"删除{bodypart.name}");
+                            break;
+                        default:
+                            bodypart.gameObject.SetActive(false);
+                            Loader.Msg($"隐藏{bodypart.name}");
+                            break;
+                    }
+                }
+            }
+
+            foreach (var o in _npcAvatarModelParent.GetComponentsInChildren<Transform>())
+            {
+                switch (o.name)
+                {
+                    case "Bip001 Spine1":
+                        _npcWeaponRoot = o.gameObject;
+                        Loader.Msg($"Found {_npcWeaponRoot.name}.");
                         break;
                     case "Bip001 L Hand":
-                        _npcWeaponL = o.gameObject;
-                        Loader.Msg($"Found {_npcWeaponL.name}");
+                        _npcWeaponLRoot = o.gameObject;
+                        Loader.Msg($"Found {_npcWeaponLRoot.name}");
                         break;
                     case "Bip001 R Hand":
-                        _npcWeaponR = o.gameObject;
-                        Loader.Msg($"Found {_npcWeaponR.name}");
+                        _npcWeaponRRoot = o.gameObject;
+                        Loader.Msg($"Found {_npcWeaponRRoot.name}");
                         break;
                 }
             }
 
-            HideObjects(); //隐藏当前角色parts
-            foreach (var npcBodypart in _npcBodyParts) //遍历_bodyparts存放于bodypart
+            foreach (var npcBodypart in _npcBodyParts)
             {
                 npcBodypart.transform.parent = _activeAvatarModelParent.transform;
                 npcBodypart.transform.parentInternal = _activeAvatarModelParent.transform;
                 npcBodypart.transform.SetSiblingIndex(0);
-                Loader.Msg($"{npcBodypart.name} moved to {_activeAvatarModelParent.name}");
+                Loader.Msg($"{npcBodypart.name} 移动到 {_activeAvatarModelParent.name}");
             }
+
+            activeAvatarAnimator.avatar = npcAnimator.avatar;
+            npcAnimator.avatar = null;
+
+            _weaponRoot.transform.parent = _npcWeaponRoot.transform;
+            _weaponL.transform.parent = _npcWeaponLRoot.transform;
+            _weaponR.transform.parent = _npcWeaponRRoot.transform;
+
+            if (searchResult.transform.parent == _npcRoot.transform)
+                _npcContainer.Add(searchResult);
         }
         //by Rin
 
