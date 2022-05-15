@@ -26,6 +26,8 @@ namespace ModelChanger
         private GameObject _activeAvatar;
         private GameObject _activeAvatarBody;
         private GameObject _activeAvatarModelParent;
+        private GameObject _prevAvatarModelParent;
+        private GameObject _gliderRoot;
         private GameObject _weaponRoot;
         private GameObject _weaponRootParent;
         private GameObject _weaponL;
@@ -41,13 +43,16 @@ namespace ModelChanger
         private List<GameObject> _searchResults = new List<GameObject>();
         private List<GameObject> _npcContainer = new List<GameObject>();
         private string _filePath;
-        private string _avatarTexName = "texture.png";
+        private string _bodyTexName = "body.png";
+        private string _hairTexName = "hair.png";
+        private string _gliderTexName = "glider.png";
         private string _avatarSearch;
         private byte[] _fileData;
         private Texture2D _tex;
+        private Animator _activeAvatarAnimator;
         private bool _showPanel;
 
-        private Rect _windowRect = new Rect((Screen.height - 100) / 2, (Screen.height - 100) / 2, 150, 100);
+        private Rect _windowRect = new Rect((Screen.height - 100) / 2, 150, 150, 100);
 
         #endregion
 
@@ -61,15 +66,22 @@ namespace ModelChanger
         public void TexWindow(int id)
         {
             if (id != 4) return;
-            GUILayout.Space(10);
 
-            GUILayout.Label("Character Texture", new GUILayoutOption[0]);
-            _avatarTexName = GUILayout.TextField(_avatarTexName, new GUILayoutOption[0]);
+            GUILayout.Label("Hair Texture", new GUILayoutOption[0]);
+            _hairTexName = GUILayout.TextField(_hairTexName, new GUILayoutOption[0]);
             if (GUILayout.Button("Apply", new GUILayoutOption[0]))
-                ApplyAvatarTexture();
+                ApplyHairTexture();
+            GUILayout.Label("Body Texture", new GUILayoutOption[0]);
+            _bodyTexName = GUILayout.TextField(_bodyTexName, new GUILayoutOption[0]);
+            if (GUILayout.Button("Apply", new GUILayoutOption[0]))
+                ApplyBodyTexture();
+            GUILayout.Label("Glider Texture", new GUILayoutOption[0]);
+            _gliderTexName = GUILayout.TextField(_gliderTexName, new GUILayoutOption[0]);
+            if (GUILayout.Button("Apply", new GUILayoutOption[0]))
+                ApplyGliderTexture();
 
             GUILayout.Space(10);
-
+            GUILayout.Label("Model", new GUILayoutOption[0]);
             GUILayout.BeginHorizontal(new GUILayoutOption[0]);
             if (GUILayout.Button("Cut", new GUILayoutOption[0]))
                 CutAvatarBody();
@@ -110,7 +122,17 @@ namespace ModelChanger
                 _showPanel = !_showPanel;
 
             if (_showPanel)
+            {
                 Focused = false;
+                if (_activeAvatarAnimator)
+                    _activeAvatarAnimator.isAnimationPaused = true;
+            }
+            else
+            {
+                if (_activeAvatarAnimator)
+                    _activeAvatarAnimator.isAnimationPaused = false;
+            }
+
 
             if (_avatarRoot == null)
                 _avatarRoot = GameObject.Find("/EntityRoot/AvatarRoot");
@@ -147,6 +169,7 @@ namespace ModelChanger
         private void CutAvatarBody()
         {
             _bodyParts.Clear();
+            _prevAvatarModelParent = _activeAvatarModelParent;
             foreach (var o in _activeAvatarModelParent.transform)
             {
                 var bodypart = o.Cast<Transform>();
@@ -176,7 +199,51 @@ namespace ModelChanger
 
         private void PasteAvatarBody()
         {
-            HideObjects();
+            var activeAvatarAnimator = _activeAvatarModelParent.GetComponent<Animator>();
+            Loader.Msg($"Animator_Load in {_activeAvatarModelParent}.");
+            var prevAvatarAnimator = _prevAvatarModelParent.GetComponent<Animator>();
+            Loader.Msg($"Animator_Load in {prevAvatarAnimator}.");
+
+            foreach (var a in _activeAvatarModelParent.transform)
+            {
+                var bodypart = a.Cast<Transform>();
+                switch (bodypart.name)
+                {
+                    case "Brow":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    case "Face":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    case "Face_Eye":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    default:
+                        bodypart.gameObject.SetActive(false);
+                        Loader.Msg($"隐藏{bodypart.name}");
+                        break;
+                }
+            }
+            foreach (var a in _activeAvatarModelParent.GetComponentsInChildren<Transform>())
+            {
+                switch (a.name)
+                {
+                    case "WeaponL":
+                        a.gameObject.SetActive(false);
+                        break;
+                    case "WeaponR":
+                        a.gameObject.SetActive(false);
+                        break;
+                }
+                if (a.name.Contains("WeaponRoot"))
+                {
+                    a.gameObject.SetActive(false);
+                }
+            }
+
             foreach (var bodypart in _bodyParts)
             {
                 bodypart.transform.parent = _activeAvatarModelParent.transform;
@@ -185,9 +252,18 @@ namespace ModelChanger
                 Loader.Msg($"{bodypart.name} moved to {_activeAvatarModelParent.name}");
             }
 
+            activeAvatarAnimator.avatar = prevAvatarAnimator.avatar;
+            prevAvatarAnimator.avatar = null;
+            
             _weaponRoot.transform.parent = _weaponRootParent.transform;
             _weaponL.transform.parent = _weaponLParent.transform;
             _weaponR.transform.parent = _weaponRParent.transform;
+            _weaponRoot.transform.SetSiblingIndex(0);
+            _weaponL.transform.SetSiblingIndex(0);
+            _weaponR.transform.SetSiblingIndex(0);
+            
+            _activeAvatar.SetActive(false);
+            _activeAvatar.SetActive(true);
         }
 
         private void SearchObjects()
@@ -245,29 +321,27 @@ namespace ModelChanger
             var npcAnimator = _npcAvatarModelParent.GetComponent<Animator>();
             Loader.Msg($"Animator_Load in {_npcAvatarModelParent}.");
 
+            foreach (var a in _activeAvatarModelParent.transform)
             {
-                foreach (var a in _activeAvatarModelParent.transform)
+                var bodypart = a.Cast<Transform>();
+                switch (bodypart.name)
                 {
-                    var bodypart = a.Cast<Transform>();
-                    switch (bodypart.name)
-                    {
-                        case "Brow":
-                            Destroy(bodypart.gameObject);
-                            Loader.Msg($"删除{bodypart.name}");
-                            break;
-                        case "Face":
-                            Destroy(bodypart.gameObject);
-                            Loader.Msg($"删除{bodypart.name}");
-                            break;
-                        case "Face_Eye":
-                            Destroy(bodypart.gameObject);
-                            Loader.Msg($"删除{bodypart.name}");
-                            break;
-                        default:
-                            bodypart.gameObject.SetActive(false);
-                            Loader.Msg($"隐藏{bodypart.name}");
-                            break;
-                    }
+                    case "Brow":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    case "Face":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    case "Face_Eye":
+                        Destroy(bodypart.gameObject);
+                        Loader.Msg($"删除{bodypart.name}");
+                        break;
+                    default:
+                        bodypart.gameObject.SetActive(false);
+                        Loader.Msg($"隐藏{bodypart.name}");
+                        break;
                 }
             }
 
@@ -287,6 +361,16 @@ namespace ModelChanger
                         _npcWeaponRRoot = o.gameObject;
                         Loader.Msg($"Found {_npcWeaponRRoot.name}");
                         break;
+                    case "WeaponL":
+                        o.gameObject.SetActive(false);
+                        break;
+                    case "WeaponR":
+                        o.gameObject.SetActive(false);
+                        break;
+                }
+                if (o.name.Contains("WeaponRoot"))
+                {
+                    o.gameObject.SetActive(false);
                 }
             }
 
@@ -304,6 +388,9 @@ namespace ModelChanger
             _weaponRoot.transform.parent = _npcWeaponRoot.transform;
             _weaponL.transform.parent = _npcWeaponLRoot.transform;
             _weaponR.transform.parent = _npcWeaponRRoot.transform;
+            _weaponRoot.transform.SetSiblingIndex(0);
+            _weaponL.transform.SetSiblingIndex(0);
+            _weaponR.transform.SetSiblingIndex(0);
 
             if (searchResult.transform.parent == _npcRoot.transform)
                 _npcContainer.Add(searchResult);
@@ -319,16 +406,48 @@ namespace ModelChanger
             }
         }
 
-        private void ApplyAvatarTexture()
+        private void ApplyBodyTexture()
         {
             if (_activeAvatarBody == null) return;
 
-            _filePath = Path.Combine(Application.dataPath, "tex_test", _avatarTexName);
+            _filePath = Path.Combine(Application.dataPath, "tex_test", _bodyTexName);
             _fileData = File.ReadAllBytes(_filePath);
             _tex = new Texture2D(1024, 1024);
             ImageConversion.LoadImage(_tex, _fileData);
 
             _activeAvatarBody.GetComponent<SkinnedMeshRenderer>().materials[1].mainTexture = _tex;
+        }
+
+        private void ApplyHairTexture()
+        {
+            if (_activeAvatarBody == null) return;
+
+            _filePath = Path.Combine(Application.dataPath, "tex_test", _hairTexName);
+            _fileData = File.ReadAllBytes(_filePath);
+            _tex = new Texture2D(1024, 1024);
+            ImageConversion.LoadImage(_tex, _fileData);
+
+            _activeAvatarBody.GetComponent<SkinnedMeshRenderer>().materials[0].mainTexture = _tex;
+        }
+
+        private void ApplyGliderTexture()
+        {
+            if (_gliderRoot == null) return;
+            var glider = _gliderRoot.transform.GetChild(0).gameObject;
+            Loader.Msg($"Found {glider.name}");
+            glider.SetActive(true);
+            
+            _filePath = Path.Combine(Application.dataPath, "tex_test", _gliderTexName);
+            _fileData = File.ReadAllBytes(_filePath);
+            _tex = new Texture2D(1024, 1024);
+            ImageConversion.LoadImage(_tex, _fileData);
+            
+            foreach (var renderer in glider.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                renderer.materials[0].mainTexture = _tex;
+            }
+            
+            glider.SetActive(false);
         }
 
         #endregion
@@ -359,6 +478,7 @@ namespace ModelChanger
                     case "OffsetDummy":
                         _activeAvatarModelParent = a.GetChild(0).gameObject;
                         Loader.Msg($"{_activeAvatarModelParent.transform.name}");
+                        _activeAvatarAnimator = _activeAvatarModelParent.GetComponent<Animator>();
                         break;
                     case "WeaponL":
                         _weaponL = a.gameObject;
@@ -374,6 +494,11 @@ namespace ModelChanger
                 {
                     _weaponRoot = a.gameObject;
                     Loader.Msg($"Found {_weaponRoot.name}");
+                }
+                if (a.name.Contains("FlycloakRoot"))
+                {
+                    _gliderRoot = a.gameObject;
+                    Loader.Msg($"Found {_gliderRoot.name}");
                 }
             }
         }

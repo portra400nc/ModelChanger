@@ -11,7 +11,7 @@ namespace ModelChanger
         public const string Description = null;
         public const string Author = "portra";
         public const string Company = null;
-        public const string Version = "0.0.4";
+        public const string Version = "0.0.5";
         public const string DownloadLink = null;
     }
     public class Loader : MelonMod
