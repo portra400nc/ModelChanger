@@ -61,6 +61,9 @@
     <Reference Include="UnityEngine.IMGUIModule, Version=3.7.1.6, Culture=neutral, PublicKeyToken=null">
       <HintPath>C:\Games\Genshin Impact\Genshin Impact game\MelonLoader\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule, Version=3.7.1.6, Culture=neutral, PublicKeyToken=null">
+      <HintPath>C:\Games\Genshin Impact\Genshin Impact game\MelonLoader\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Loader.cs" />
