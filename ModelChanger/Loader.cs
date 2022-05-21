@@ -11,7 +11,7 @@ namespace ModelChanger
         public const string Description = null;
         public const string Author = "portra";
         public const string Company = null;
-        public const string Version = "0.0.6";
+        public const string Version = "0.0.7";
         public const string DownloadLink = null;
     }
     public class Loader : MelonMod
@@ -25,6 +25,7 @@ namespace ModelChanger
         public override void OnApplicationStart()
         {
             ClassInjector.RegisterTypeInIl2Cpp<Main>();
+            ClassInjector.RegisterTypeInIl2Cpp<RotationController>();
             Msg = LoggerInstance.Msg;
             Warning = LoggerInstance.Warning;
             Error = LoggerInstance.Error;
