@@ -18,21 +18,21 @@ namespace ModelChanger
         }
         
         private Transform _t;
-        private GameObject _npcBip;
+        private Quaternion _entityLocalRot;
+        private Quaternion _entityRot;
         private const float BodyRotation = 90f;
 
         public void Awake()
         {
             _t = transform;
-            _npcBip = EntityBip;
+            _entityLocalRot = EntityBip.transform.localRotation;
+            _entityRot = EntityBip.transform.rotation;
         }
 
         private void Update()
         {
-            var entityT = _npcBip.transform;
-            var entityRot = entityT.localRotation;
-            _t.localRotation = Quaternion.Euler(BodyRotation, entityRot.y, entityRot.z);
-            _t.rotation = Quaternion.Euler(BodyRotation, entityRot.y, entityRot.z);
+            _t.localRotation = Quaternion.Euler(BodyRotation, _entityLocalRot.y, _entityLocalRot.z);
+            _t.rotation = Quaternion.Euler(BodyRotation, _entityRot.y, _entityRot.z);
         }
     }
 }

@@ -386,6 +386,8 @@ namespace ModelChanger
 
             _activeAvatar.SetActive(false);
             _activeAvatar.SetActive(true);
+            
+            _activeAvatarBody.SetActive(false);
         }
 
         private void SearchObjects()
@@ -447,7 +449,7 @@ namespace ModelChanger
             {
                 npcBodyParent = npcBodyParent.transform.parent.gameObject;
             }
-
+            
             var activeCharacterBodyParent = _activeAvatarBody.gameObject;
             while (activeCharacterBodyParent.transform.parent.transform.parent.gameObject.name != "EntityRoot")
             {
@@ -523,7 +525,7 @@ namespace ModelChanger
                         break;
                 }
             }
-
+            
             foreach (var a in _activeAvatarModelParent.GetComponentsInChildren<Transform>())
             {
                 if (a.name == "+FlycloakRootB CB A01")
@@ -551,8 +553,8 @@ namespace ModelChanger
                 npcBodyParent.GetComponent<Rigidbody>().collisionDetectionMode =
                     CollisionDetectionMode.ContinuousDynamic;
                 npcAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                activeAvatarAnimator.avatar = npcAnimator.avatar;
                 npcAnimator.avatar = null;
-                npcAnimator.avatar = activeAvatarAnimator.avatar;
                 npcAnimator.runtimeAnimatorController = null;
                 npcAnimator.runtimeAnimatorController = activeAvatarAnimator.runtimeAnimatorController;
                 npcBodyParent.transform.Find("Collider").gameObject.SetActive(false);
@@ -577,9 +579,8 @@ namespace ModelChanger
                 Destroy(npcBodyParent);
                 _npcBodyParent = npcBodyParent;
             }
-
-            if (searchResult.transform.parent == _npcRoot.transform)
-                _npcContainer.Add(searchResult);
+            
+            _activeAvatarBody.SetActive(false);
         }
         //by Rin
 
